@@ -27,7 +27,40 @@ const (
 	flushPeriod = 100 * time.Millisecond
 )
 
-func BenchmarkQuipo(b *testing.B) {
+func BenchmarkGoMetricBuffered(b *testing.B) {
+	client := gometric.NewBufferedClient(host, port)
+	client.Open()
+	client.SetPrefix(prefix)
+	client.SetFlushInterval(flushPeriod)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		client.Count(counterKey, 1, 1)
+		client.Gauge(gaugeKey, gaugeValue)
+		client.Timing(timingKey, int64(timingValue), 1)
+	}
+
+	client.Close()
+}
+
+func BenchmarkGoMetricNotBuffered(b *testing.B) {
+	client := gometric.NewClient(host, port)
+	client.SetPrefix(prefix)
+	client.Open()
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		client.Count(counterKey, 1, 1)
+		client.Gauge(gaugeKey, gaugeValue)
+		client.Timing(timingKey, int64(timingValue), 1)
+	}
+
+	client.Close()
+}
+
+func BenchmarkQuipoBuffered(b *testing.B) {
 	client := quipo.NewStatsdClient(
 		host+":"+strconv.Itoa(port),
 		prefix,
@@ -59,7 +92,7 @@ func BenchmarkQuipo(b *testing.B) {
 	client.Close()
 }
 
-func BenchmarkG2s(b *testing.B) {
+func BenchmarkG2sNotBuffered(b *testing.B) {
 	client, err := g2s.Dial("udp", host+":"+strconv.Itoa(port))
 	if err != nil {
 		b.Fatal(err)
@@ -74,23 +107,7 @@ func BenchmarkG2s(b *testing.B) {
 	}
 }
 
-func BenchmarkGoMetric(b *testing.B) {
-	client := gometric.NewClient(host, port)
-	client.SetPrefix(prefix)
-	client.Open()
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		client.Count(counterKey, 1, 1)
-		client.Gauge(gaugeKey, gaugeValue)
-		client.Timing(timingKey, int64(timingValue), 1)
-	}
-
-	client.Close()
-}
-
-func BenchmarkAlexcesaro(b *testing.B) {
+func BenchmarkAlexcesaroBuffered(b *testing.B) {
 	client, err := ac.New(
 		ac.Address(host+":"+strconv.Itoa(port)),
 		ac.Prefix(prefixNoDot),
@@ -110,7 +127,7 @@ func BenchmarkAlexcesaro(b *testing.B) {
 	client.Close()
 }
 
-func BenchmarkCactus(b *testing.B) {
+func BenchmarkCactusBuffered(b *testing.B) {
 	client, err := cactus.NewBufferedClient(
 		host+":"+strconv.Itoa(port),
 		prefix,
